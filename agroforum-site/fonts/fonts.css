@@ -1,0 +1,12 @@
+/* Self-hosted fonts: no Google Fonts, works from China. Subset: Latin + Cyrillic (incl. Kazakh letters) + ₸ */
+@font-face{font-family:"Inter";src:url("inter-regular.woff") format("woff");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Inter";src:url("inter-medium.woff") format("woff");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"Inter";src:url("inter-semibold.woff") format("woff");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Inter";src:url("inter-bold.woff") format("woff");font-weight:700;font-style:normal;font-display:swap}
+:root{
+  --font-head:"Inter","Segoe UI",system-ui,sans-serif;
+  --font-body:"Inter","Segoe UI",system-ui,sans-serif;
+  --c-bg:#FFFFFF;--c-card:#FFFFFF;--c-band:#F5F5F7;--c-ink:#1D1D1F;--c-gold:#9AD3AE;--c-green:#2E7D4F;--c-gray:#6E6E73;
+}
+/* Chinese: system CJK fonts, no web font */
+:lang(zh){--font-head:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;--font-body:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
