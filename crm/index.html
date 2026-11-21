@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Агрофорум CRM</title>
+<style>
+/* Layout idea: top bar with tabs, one working area; lead card slides in from the right. */
+:root{
+  --bg:#F4F5F2; --card:#FFFFFF; --ink:#1B2420; --mute:#66706A; --line:#DDE1DA;
+  --accent:#1B4D2E; --accent-ink:#FFFFFF; --soft:#E6EEE8;
+  --good:#2E7D4F; --warn:#B7791F; --bad:#B3402F; --info:#2D5E8C;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-head:"Fraunces",Georgia,serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121715; --card:#1A211E; --ink:#E7ECE8; --mute:#9AA59E; --line:#2B3430; --accent:#5DB07F; --accent-ink:#0E1A13; --soft:#22302A;
+  --good:#6CC28E; --warn:#E0A94D; --bad:#E27D6D; --info:#7BB2E0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --card:#1A211E; --ink:#E7ECE8; --mute:#9AA59E; --line:#2B3430; --accent:#5DB07F; --accent-ink:#0E1A13; --soft:#22302A;
+  --good:#6CC28E; --warn:#E0A94D; --bad:#E27D6D; --info:#7BB2E0; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{font:600 20px var(--f-head);letter-spacing:-.01em}
+.brand small{display:block;font:400 12px var(--f-body);color:var(--mute);letter-spacing:0}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:8px 14px;border-radius:999px;cursor:pointer;color:var(--mute);font-weight:500}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tab:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.me{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--mute)}
+main{padding:20px;max-width:1280px;margin:0 auto}
+.banner{margin:12px 20px 0;padding:10px 14px;border-radius:10px;background:#FBEFD5;color:#5B4210;border:1px solid #E9D3A0}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi,.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi b{display:block;font:600 26px var(--f-head);margin-top:2px}
+.kpi span{color:var(--mute);font-size:12px}
+.panel h3{font-size:15px;margin-bottom:10px}
+.cols2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.bar{display:grid;grid-template-columns:minmax(90px,150px) 1fr auto;align-items:center;gap:8px;margin:5px 0;font-size:13px}
+.bar i{display:block;height:10px;border-radius:5px;background:var(--accent);min-width:2px}
+.bar .t{height:10px;border-radius:5px;background:var(--soft)}
+.bar em{font-style:normal;text-align:right;color:var(--mute)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.toolbar input,.toolbar select,.f input,.f select,.f textarea{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.toolbar input[type=search]{min-width:220px;flex:1}
+.btn{padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:500}
+.btn.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.d{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--mute);font-weight:500;background:var(--bg);position:sticky;top:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--soft)}
+tbody tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--soft);border-left:4px solid var(--mute)}
+.s-new{border-color:var(--info)}.s-contacted,.s-talking{border-color:var(--warn)}.s-nocontact{border-color:var(--bad)}.s-invoiced{border-color:var(--warn)}.s-paid,.s-confirmed{border-color:var(--good)}.s-declined{border-color:var(--mute);opacity:.7}
+.late{color:var(--bad);font-weight:600}
+.empty{padding:28px;text-align:center;color:var(--mute)}
+.drawer{position:fixed;inset:0 0 0 auto;width:min(960px,100%);background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.18);z-index:20;overflow:auto;transform:translateX(100%);visibility:hidden;transition:transform .2s,visibility .2s}
+.drawer.open{transform:none;visibility:visible}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+.dh{display:flex;gap:12px;align-items:flex-start;padding:16px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1}
+.dh h2{font:600 22px var(--f-head);flex:1}
+.db{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1.2fr);gap:16px;padding:16px 20px}
+@media(max-width:760px){.db{grid-template-columns:1fr}.top{padding:10px 14px}main{padding:14px}}
+.f{display:grid;gap:10px}
+.f label{display:grid;gap:3px;font-size:12px;color:var(--mute)}
+.f input,.f select,.f textarea{width:100%;color:var(--ink)}
+.f .r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tl{display:grid;gap:8px;margin-top:10px}
+.ev{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;border-left:4px solid var(--mute)}
+.ev.call{border-left-color:var(--info)}.ev.msg{border-left-color:var(--good)}.ev.note{border-left-color:var(--warn)}
+.ev small{color:var(--mute);display:block}
+.ev p{margin:2px 0 0;white-space:pre-wrap}
+.tabs2{display:flex;gap:6px;margin-bottom:8px}
+.tabs2 .btn[aria-pressed="true"]{background:var(--soft);border-color:var(--accent)}
+.hint{color:var(--mute);font-size:12px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:15;display:none}
+.scrim.on{display:block}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;display:none}
+.toast.on{display:block}
+textarea.paste{width:100%;min-height:110px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:var(--card)}
+.dz{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--mute)}
+.dz.over{border-color:var(--accent);background:var(--soft)}
+a{color:var(--info)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Агрофорум 2026<small>CRM регистрации · 3 декабря, Алматы</small></div>
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-t="today">Сегодня</button>
+    <button class="tab" role="tab" data-t="leads">Лиды</button>
+    <button class="tab" role="tab" data-t="reports">Отчёты</button>
+    <button class="tab" role="tab" data-t="data">Данные</button>
+  </nav>
+  <div class="me"><label for="mgr">Я менеджер</label><select id="mgr"></select></div>
+</header>
+<div id="banner"></div>
+<main id="view"></main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Карточка лида"></aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ---------- справочники (взяты с формы регистрации сайта) ---------- */
+const STATUS=[["new","Новый"],["contacted","Связались"],["nocontact","Недозвон"],["talking","Переписка"],["invoiced","Ожидает оплаты"],["paid","Оплачено"],["confirmed","Подтверждён"],["declined","Отказ"]];
+const SN=Object.fromEntries(STATUS);
+const PACK=[["Қатысушы",5000],["Кешкі ас",30000],["Көрме",100000],["Спикер",150000]];
+const PRICE=Object.fromEntries(PACK);
+const REGION=["Алматинская область","Жетысуская область","Жамбылская область","Туркестанская область","г. Алматы","Другой регион"];
+const SPHERE=["Животноводство","Растениеводство","Рыбоводство","Коневодство","Вода и пастбища","Переработка и экспорт","Наука и образование","Инвестиции","Другое"];
+const LANG=["Казахский","Русский","Китайский","Узбекский","Кыргызский","Английский","Турецкий","Корейский"];
+const SOURCE=["Сайт (форма)","WhatsApp","Звонок","Соцсети","Рекомендация","Вручную"];
+const CALLRES=["Дозвонились","Недозвон","Занято","Перезвонить","Номер неверный"];
+const CHANNEL=["WhatsApp","Telegram","SMS","Email","Другое"];
+const SEATS=250;
+const FINAL=["paid","confirmed","declined"];
+
+/* ---------- состояние и хранилище ---------- */
+const S={leads:[],calls:[],msgs:[],tab:"today",f:{q:"",status:"",region:"",sphere:"",pack:""},open:null,range:"all",mem:false};
+let DB=null;
+const $=s=>document.querySelector(s);
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtD=t=>t?new Date(t).toLocaleDateString("ru-RU"):"";
+const fmtDT=t=>t?new Date(t).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+const money=n=>(n||0).toLocaleString("ru-RU")+" ₸";
+const digits=p=>String(p||"").replace(/\D/g,"").replace(/^8(\d{10})$/,"7$1");
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2600)}
+function norm(d){return d&&typeof d.data==="function"?Object.assign({},d.data(),{id:d.id}):d}
+function rowsOf(s){
+  if(!s)return[];
+  if(Array.isArray(s))return s.map(norm);
+  if(s.docs)return s.docs.map(norm);
+  if(typeof s.forEach==="function"){const a=[];s.forEach(d=>a.push(norm(d)));return a}
+  return Object.entries(s).map(([k,v])=>Object.assign({id:k},v));
+}
+const store={
+  async set(col,obj){ if(DB){await DB.collection(col).doc(obj.id).set(obj)} else {upsertLocal(col,obj)} },
+  async del(col,id){ if(DB){await DB.collection(col).doc(id).delete()} else {S[colKey(col)]=S[colKey(col)].filter(x=>x.id!==id); saveLocal(); render()} }
+};
+const colKey=c=>({leads:"leads",calls:"calls",messages:"msgs"}[c]);
+function saveLocal(){try{localStorage.setItem('agf-crm',JSON.stringify({leads:S.leads,calls:S.calls,msgs:S.msgs}))}catch(e){}}
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem('agf-crm')||'null');if(d){S.leads=d.leads||[];S.calls=d.calls||[];S.msgs=d.msgs||[]}}catch(e){}}
+function upsertLocal(col,o){const k=colKey(col);const i=S[k].findIndex(x=>x.id===o.id);if(i<0)S[k].push(o);else S[k][i]=o;saveLocal();render()}
+function sub(col,key){
+  DB.collection(col).onSnapshot(snap=>{S[key]=rowsOf(snap);render()},err=>{console.error(err);toast("Ошибка чтения: "+col)});
+}
+async function boot(){
+  fillMgr();
+  let db=null;
+  try{ if(typeof claude!=="undefined"){ db=await Promise.race([claude.use("db"),new Promise(r=>setTimeout(()=>r(null),10000))]) } }catch(e){db=null}
+  if(db){DB=db;sub("leads","leads");sub("calls","calls");sub("messages","msgs")}
+  else{S.mem=true;loadLocal();$("#banner").innerHTML='<div class="banner">Автономная версия: данные хранятся только в этом браузере на этом устройстве. Для общей базы менеджеров используйте версию в claude.ai. Регулярно делайте выгрузку CSV во вкладке «Данные».</div>'}
+  render();
+}
+function fillMgr(){
+  const list=["Менеджер 1","Менеджер 2","Менеджер 3","Администратор"];
+  let cur="";try{cur=localStorage.getItem("agf-mgr")||""}catch(e){}
+  $("#mgr").innerHTML=list.map(m=>`<option${m===cur?" selected":""}>${m}</option>`).join("");
+  $("#mgr").onchange=()=>{try{localStorage.setItem("agf-mgr",$("#mgr").value)}catch(e){}};
+}
+const me=()=>$("#mgr").value;
+
+/* ---------- вычисления ---------- */
+const byId=id=>S.leads.find(l=>l.id===id);
+const inRange=t=>{if(S.range==="all")return true;const d=(Date.now()-t)/864e5;return d<=Number(S.range)};
+function lastContact(id){const a=[...S.calls.filter(c=>c.leadId===id),...S.msgs.filter(m=>m.leadId===id)].map(x=>x.ts||0);return a.length?Math.max(...a):0}
+function filtered(){
+  const f=S.f,q=f.q.trim().toLowerCase(),qd=q.replace(/\D/g,"");
+  return S.leads.filter(l=>(!f.status||l.status===f.status)&&(!f.region||l.region===f.region)&&(!f.sphere||l.sphere===f.sphere)&&(!f.pack||l.pack===f.pack)
+   &&(!q||[l.fio,l.phone,l.product,l.region,l.sphere,l.manager].join(" ").toLowerCase().includes(q)||(qd.length>=3&&digits(l.phone).includes(qd)))).sort((a,b)=>(b.created||0)-(a.created||0));
+}
+function counts(list,key){const m={};list.forEach(l=>{const k=l[key]||"Не указано";m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+function bars(rows,total,fmt){
+  if(!rows.length)return'<div class="hint">Нет данных</div>';
+  const mx=Math.max(...rows.map(r=>r[1]),1);
+  return rows.map(([k,v,extra])=>`<div class="bar"><span>${esc(k)}</span><div class="t"><i style="width:${Math.max(2,v/mx*100)}%"></i></div><em style="white-space:nowrap">${fmt?fmt(v,extra):v}</em></div>`).join("");
+}
+
+/* ---------- отрисовка ---------- */
+function render(){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===S.tab));
+  const v=$("#view");
+  if(S.tab==="today")v.innerHTML=viewToday();
+  else if(S.tab==="leads")v.innerHTML=viewLeads();
+  else if(S.tab==="reports")v.innerHTML=viewReports();
+  else v.innerHTML=viewData();
+  bindView();
+  if(S.open&&!S.draft){const l=byId(S.open);if(!l)closeDrawer();else refreshDrawer()}
+}
+const pill=s=>`<span class="pill s-${s}">${esc(SN[s]||s)}</span>`;
+
+function viewToday(){
+  const t=today(),act=S.leads.filter(l=>!FINAL.includes(l.status));
+  const due=act.filter(l=>l.next&&l.next<=t).sort((a,b)=>a.next.localeCompare(b.next));
+  const fresh=S.leads.filter(l=>l.status==="new"&&!lastContact(l.id)).sort((a,b)=>(a.created||0)-(b.created||0));
+  const stale=act.filter(l=>!l.next&&l.status!=="new"&&(Date.now()-(lastContact(l.id)||l.created||0))>3*864e5);
+  const row=(l,extra)=>`<tr data-id="${l.id}"><td>${esc(l.fio)}</td><td>${esc(l.phone)}</td><td>${esc(l.region||"")}</td><td>${pill(l.status)}</td><td>${extra}</td></tr>`;
+  const tbl=(rows,ex)=>rows.length?`<div class="tw"><table><thead><tr><th>ФИО</th><th>Телефон</th><th>Регион</th><th>Статус</th><th>Что сделать</th></tr></thead><tbody>${rows.map(l=>row(l,ex(l))).join("")}</tbody></table></div>`:'<div class="empty">Пусто</div>';
+  const seats=S.leads.filter(l=>["paid","confirmed"].includes(l.status)).length;
+  return `<div class="grid kpis" style="margin-bottom:16px">
+    <div class="kpi"><span>Новые без контакта</span><b>${fresh.length}</b></div>
+    <div class="kpi"><span>Задачи на сегодня и просрочено</span><b>${due.length}</b></div>
+    <div class="kpi"><span>Без движения более 3 дней</span><b>${stale.length}</b></div>
+    <div class="kpi"><span>Мест занято</span><b>${seats} из ${SEATS}</b></div></div>
+    <h3 style="margin:16px 0 8px">Нужно связаться: новые лиды</h3>${tbl(fresh,l=>`Первый звонок (с ${fmtD(l.created)})`)}
+    <h3 style="margin:16px 0 8px">Задачи на сегодня</h3>${tbl(due,l=>`<span class="${l.next<t?"late":""}">${fmtD(l.next)}</span> ${esc(l.nextNote||"")}`)}
+    <h3 style="margin:16px 0 8px">Без движения</h3>${tbl(stale,l=>"Нет следующего шага")}`;
+}
+function viewLeads(){
+  const list=filtered(),f=S.f;
+  const opt=(arr,cur,ph)=>`<option value="">${ph}</option>`+arr.map(x=>{const v=Array.isArray(x)?x[0]:x,t=Array.isArray(x)?x[1]:x;return`<option value="${esc(v)}"${cur===v?" selected":""}>${esc(t)}</option>`}).join("");
+  return `<div class="toolbar">
+   <input type="search" id="q" placeholder="Поиск: ФИО, телефон, продукт" value="${esc(f.q)}" aria-label="Поиск">
+   <select data-f="status" aria-label="Статус">${opt(STATUS,f.status,"Все статусы")}</select>
+   <select data-f="region" aria-label="Регион">${opt(REGION,f.region,"Все регионы")}</select>
+   <select data-f="sphere" aria-label="Направление">${opt(SPHERE,f.sphere,"Все направления")}</select>
+   <select data-f="pack" aria-label="Пакет">${opt(PACK.map(p=>p[0]),f.pack,"Все пакеты")}</select>
+   <button class="btn p" id="addLead">+ Новый лид</button></div>
+   <div class="hint" style="margin-bottom:8px">Показано ${list.length} из ${S.leads.length}</div>
+   <div class="tw"><table><thead><tr><th>Дата</th><th>ФИО</th><th>Телефон</th><th>Регион</th><th>Направление</th><th>Пакет</th><th>Статус</th><th>Менеджер</th><th>Следующий шаг</th></tr></thead><tbody>
+   ${list.map(l=>`<tr data-id="${l.id}"><td>${fmtD(l.created)}</td><td>${esc(l.fio)}</td><td>${esc(l.phone)}</td><td>${esc(l.region||"")}</td><td>${esc(l.sphere||"")}</td><td>${esc(l.pack||"")}</td><td>${pill(l.status)}</td><td>${esc(l.manager||"")}</td><td>${l.next?`<span class="${l.next<today()&&!FINAL.includes(l.status)?"late":""}">${fmtD(l.next)}</span>`:""}</td></tr>`).join("")}
+   </tbody></table>${list.length?"":'<div class="empty">Лидов нет. Добавьте вручную или импортируйте таблицу во вкладке «Данные».</div>'}</div>`;
+}
+function viewReports(){
+  const L=S.leads.filter(l=>inRange(l.created||0));
+  const paid=L.filter(l=>["paid","confirmed"].includes(l.status));
+  const revenue=paid.reduce((s,l)=>s+(Number(l.amount)||PRICE[l.pack]||0),0);
+  const C=S.calls.filter(c=>inRange(c.ts||0)),M=S.msgs.filter(m=>inRange(m.ts||0));
+  const reached=C.filter(c=>c.result==="Дозвонились").length;
+  const conv=L.length?Math.round(paid.length/L.length*100):0;
+  const stat=STATUS.map(([k,n])=>[n,L.filter(l=>l.status===k).length]);
+  const pk=PACK.map(([n,p])=>{const a=L.filter(l=>l.pack===n),pd=a.filter(l=>["paid","confirmed"].includes(l.status));return[n,a.length,pd.length+" опл. · "+money(pd.reduce((s,l)=>s+(Number(l.amount)||p),0))]});
+  const days=[];for(let i=13;i>=0;i--){const d=new Date(Date.now()-i*864e5).toISOString().slice(0,10);days.push([d.slice(5),S.leads.filter(l=>new Date(l.created||0).toISOString().slice(0,10)===d).length])}
+  const mgrs=[...new Set([...S.leads.map(l=>l.manager),...S.calls.map(c=>c.manager),...S.msgs.map(m=>m.manager)].filter(Boolean))];
+  const mrow=mgrs.map(m=>`<tr><td>${esc(m)}</td><td>${L.filter(l=>l.manager===m).length}</td><td>${C.filter(c=>c.manager===m).length}</td><td>${C.filter(c=>c.manager===m&&c.result==="Дозвонились").length}</td><td>${M.filter(x=>x.manager===m).length}</td><td>${paid.filter(l=>l.manager===m).length}</td></tr>`).join("");
+  const ranges=[["all","Всё время"],["30","30 дней"],["7","7 дней"]];
+  return `<div class="toolbar"><div class="tabs2" id="rng">${ranges.map(([k,t])=>`<button class="btn" data-r="${k}" aria-pressed="${S.range===k}">${t}</button>`).join("")}</div>
+    <button class="btn" id="expRep">Скопировать сводку</button></div>
+   <div class="grid kpis" style="margin-bottom:12px">
+    <div class="kpi"><span>Лидов</span><b>${L.length}</b></div>
+    <div class="kpi"><span>Оплатили</span><b>${paid.length}</b></div>
+    <div class="kpi"><span>Конверсия</span><b>${conv}%</b></div>
+    <div class="kpi"><span>Выручка</span><b>${money(revenue)}</b></div>
+    <div class="kpi"><span>Мест занято</span><b>${S.leads.filter(l=>["paid","confirmed"].includes(l.status)).length}/${SEATS}</b></div>
+    <div class="kpi"><span>Звонков (дозвон)</span><b>${C.length} (${reached})</b></div>
+    <div class="kpi"><span>Сообщений</span><b>${M.length}</b></div></div>
+   <div class="grid cols2">
+    <div class="panel"><h3>Воронка по статусам</h3>${bars(stat)}</div>
+    <div class="panel"><h3>Пакеты участия</h3>${bars(pk,0,(v,x)=>v+" · "+x)}</div>
+    <div class="panel"><h3>Регионы</h3>${bars(counts(L,"region"))}</div>
+    <div class="panel"><h3>Направления деятельности</h3>${bars(counts(L,"sphere"))}</div>
+    <div class="panel"><h3>Язык перевода (для переводчиков)</h3>${bars(counts(L,"lang"))}</div>
+    <div class="panel"><h3>Новые лиды за 14 дней</h3>${bars(days)}</div>
+    <div class="panel"><h3>Источники</h3>${bars(counts(L,"source"))}</div>
+    <div class="panel"><h3>Менеджеры</h3>${mgrs.length?`<div class="tw"><table style="min-width:0"><thead><tr><th>Менеджер</th><th>Лиды</th><th>Звонки</th><th>Дозвон</th><th>Сообщ.</th><th>Оплат</th></tr></thead><tbody>${mrow}</tbody></table></div>`:'<div class="hint">Нет данных</div>'}</div>
+   </div>`;
+}
+function viewData(){
+  return `<div class="grid cols2">
+   <div class="panel"><h3>Импорт лидов из таблицы</h3>
+    <p class="hint">Файл CSV из Google Таблицы с заявками сайта (Файл, Скачать, CSV). Колонки находятся по названиям: ФИО или имя, телефон, регион, сфера или направление, пакет, язык, продукт, вопрос. Лиды с уже существующим телефоном пропускаются.</p>
+    <div class="dz" id="dz">Перетащите CSV сюда или <label style="color:var(--info);cursor:pointer"><input type="file" id="file" accept=".csv,text/csv,.txt" hidden>выберите файл</label></div>
+    <p class="hint">Или вставьте строки таблицы вместе с заголовком:</p>
+    <textarea class="paste" id="paste" aria-label="Вставка таблицы"></textarea>
+    <p><button class="btn p" id="doPaste">Импортировать вставленное</button></p></div>
+   <div class="panel"><h3>Выгрузка</h3>
+    <p class="hint">Файлы открываются в Excel и Google Таблицах.</p>
+    <p><button class="btn" data-x="leads">Лиды (CSV)</button> <button class="btn" data-x="calls">Звонки (CSV)</button> <button class="btn" data-x="messages">Переписка (CSV)</button></p>
+    <h3 style="margin-top:18px">Демо-данные</h3>
+    <p class="hint">Примеры для знакомства с CRM. Помечены как демо.</p>
+    <p><button class="btn d" id="delDemo">Удалить демо-лиды и их историю</button></p>
+    <h3 style="margin-top:18px">Как заявки попадают сюда</h3>
+    <p class="hint">Форма сайта пишет в Google Таблицу. Пока автоматической связи нет: выгружайте таблицу в CSV и импортируйте здесь. Дубли по телефону отсекаются, поэтому импорт можно повторять.</p></div></div>`;
+}
+
+/* ---------- события ---------- */
+function bindView(){
+  document.querySelectorAll("#view tbody tr[data-id]").forEach(r=>r.onclick=()=>openLead(r.dataset.id));
+  const q=$("#q");if(q)q.oninput=e=>{S.f.q=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
+  document.querySelectorAll("[data-f]").forEach(s=>s.onchange=e=>{S.f[s.dataset.f]=e.target.value;render()});
+  const a=$("#addLead");if(a)a.onclick=newLead;
+  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{S.range=b.dataset.r;render()});
+  const er=$("#expRep");if(er)er.onclick=copyReport;
+  const file=$("#file");if(file)file.onchange=e=>readFile(e.target.files[0]);
+  const dz=$("#dz");if(dz){dz.ondragover=e=>{e.preventDefault();dz.classList.add("over")};dz.ondragleave=()=>dz.classList.remove("over");dz.ondrop=e=>{e.preventDefault();dz.classList.remove("over");readFile(e.dataTransfer.files[0])}}
+  const dp=$("#doPaste");if(dp)dp.onclick=()=>importText($("#paste").value);
+  document.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>exportCsv(b.dataset.x));
+  const dd=$("#delDemo");if(dd)dd.onclick=delDemo;
+}
+$("#tabs").onclick=e=>{const b=e.target.closest(".tab");if(b){S.tab=b.dataset.t;render()}};
+$("#scrim").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.open)closeDrawer()});
+
+/* ---------- карточка лида ---------- */
+function blank(){return{id:uid(),fio:"",phone:"",region:"",sphere:"",product:"",pack:"Қатысушы",lang:"Русский",question:"",source:"Вручную",status:"new",manager:me(),amount:"",next:"",nextNote:"",created:Date.now()}}
+function newLead(){const l=blank();S.open=l.id;S.draft=l;drawerRender()}
+function openLead(id){S.open=id;S.draft=null;drawerRender()}
+function closeDrawer(){S.open=null;S.draft=null;$("#drawer").classList.remove("open");$("#scrim").classList.remove("on");$("#drawer").innerHTML=""}
+function cur(){return S.draft||byId(S.open)}
+const sel=(arr,v,id,blankOpt)=>`<select id="${id}">${blankOpt?'<option value="">—</option>':""}${arr.map(x=>{const a=Array.isArray(x)?x:[x,x];return`<option value="${esc(a[0])}"${a[0]===v?" selected":""}>${esc(a[1])}</option>`}).join("")}</select>`;
+function tlHtml(l){
+  const ev=[...S.calls.filter(c=>c.leadId===l.id).map(c=>({t:c.ts,k:"call",c})),...S.msgs.filter(m=>m.leadId===l.id).map(m=>({t:m.ts,k:m.channel==="Заметка"?"note":"msg",c:m}))].sort((a,b)=>b.t-a.t);
+  return `${ev.length?ev.map(x=>x.k==="call"?`<div class="ev call"><small>${fmtDT(x.t)} · Звонок ${x.c.dir==="in"?"входящий":"исходящий"} · ${esc(x.c.manager||"")}</small><b>${esc(x.c.result)}</b>${x.c.mins?` · ${esc(x.c.mins)} мин`:""}${x.c.note?`<p>${esc(x.c.note)}</p>`:""}</div>`
+    :`<div class="ev ${x.k}"><small>${fmtDT(x.t)} · ${esc(x.c.channel)}${x.k==="msg"?(x.c.dir==="in"?" · от клиента":" · клиенту"):""} · ${esc(x.c.manager||"")}</small><p>${esc(x.c.text)}</p></div>`).join(""):'<div class="empty">Контактов ещё не было</div>'}`;
+}
+function refreshDrawer(){const l=cur(),t=$("#tl");if(!l||!t)return;t.innerHTML=tlHtml(l)}
+function drawerRender(keepScroll){
+  const l=cur();if(!l){return closeDrawer()}
+  const d=$("#drawer"),isNew=!!S.draft;
+  const keep=keepScroll?d.scrollTop:0;
+  const wa=digits(l.phone);
+  const ev=[...S.calls.filter(c=>c.leadId===l.id).map(c=>({t:c.ts,k:"call",c})),...S.msgs.filter(m=>m.leadId===l.id).map(m=>({t:m.ts,k:m.channel==="Заметка"?"note":"msg",c:m}))].sort((a,b)=>b.t-a.t);
+  const dup=isNew&&l.phone&&S.leads.some(x=>digits(x.phone)===digits(l.phone));
+  d.innerHTML=`<div class="dh"><h2>${isNew?"Новый лид":esc(l.fio||"Без имени")}</h2>${isNew?"":pill(l.status)}<button class="btn" id="dClose" aria-label="Закрыть">Закрыть</button></div>
+  <div class="db"><section class="f" aria-label="Данные лида">
+   <label>ФИО<input id="fio" value="${esc(l.fio)}"></label>
+   <label>Телефон / WhatsApp<input id="phone" value="${esc(l.phone)}" inputmode="tel"></label>
+   ${wa?`<div class="hint">Написать: <a href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp ${esc(l.phone)}</a>${dup?' · <b class="late">Такой телефон уже есть</b>':""}</div>`:""}
+   <div class="r2"><label>Регион${sel(REGION,l.region,"region",1)}</label><label>Направление деятельности${sel(SPHERE,l.sphere,"sphere",1)}</label></div>
+   <label>Описание продукта<textarea id="product" rows="3">${esc(l.product)}</textarea></label>
+   <div class="r2"><label>Пакет${sel(PACK.map(p=>[p[0],p[0]+" · "+money(p[1])]),l.pack,"pack")}</label><label>Язык перевода${sel(LANG,l.lang,"lang")}</label></div>
+   <label>Вопрос учёным<textarea id="question" rows="2">${esc(l.question)}</textarea></label>
+   <div class="r2"><label>Статус${sel(STATUS,l.status,"status")}</label><label>Менеджер<input id="manager" value="${esc(l.manager)}"></label></div>
+   <div class="r2"><label>Сумма оплаты, ₸<input id="amount" inputmode="numeric" value="${esc(l.amount)}" placeholder="${PRICE[l.pack]||""}"></label><label>Источник${sel(SOURCE,l.source,"source")}</label></div>
+   <div class="r2"><label>Следующий шаг: дата<input id="next" type="date" value="${esc(l.next)}"></label><label>Что сделать<input id="nextNote" value="${esc(l.nextNote)}"></label></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" id="save">${isNew?"Создать лид":"Сохранить"}</button>${isNew?"":'<button class="btn d" id="del">Удалить лид</button>'}</div>
+  </section>
+  <section aria-label="История общения">${isNew?'<div class="empty">Сначала создайте лид. Затем здесь появятся звонки и переписка.</div>':`
+   <div class="tabs2"><button class="btn" data-lg="call" aria-pressed="true">Звонок</button><button class="btn" data-lg="msg" aria-pressed="false">Сообщение</button><button class="btn" data-lg="note" aria-pressed="false">Заметка</button></div>
+   <div class="f" id="logform"></div>
+   <div class="tl" id="tl">${tlHtml(l)}</div>`}
+  </section></div>`;
+  d.classList.add("open");$("#scrim").classList.add("on");d.scrollTop=keep;
+  $("#dClose").onclick=closeDrawer;
+  $("#save").onclick=saveLead;
+  const del=$("#del");if(del)del.onclick=async()=>{if(!del.dataset.sure){del.dataset.sure=1;del.textContent="Нажмите ещё раз для удаления";return}
+    await Promise.all([...S.calls.filter(c=>c.leadId===l.id).map(c=>store.del("calls",c.id)),...S.msgs.filter(m=>m.leadId===l.id).map(m=>store.del("messages",m.id)),store.del("leads",l.id)]);closeDrawer();toast("Лид удалён")};
+  if(isNew){$("#phone").oninput=()=>{S.draft.phone=$("#phone").value}}
+  d.querySelectorAll("[data-lg]").forEach(b=>b.onclick=()=>{S.lg=b.dataset.lg;logForm()});
+  if(!isNew)logForm();
+}
+function logForm(){
+  const k=S.lg||"call",box=$("#logform");if(!box)return;
+  document.querySelectorAll("[data-lg]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lg===k));
+  if(k==="call")box.innerHTML=`<div class="r2"><label>Направление<select id="cdir"><option value="out">Исходящий</option><option value="in">Входящий</option></select></label><label>Результат${sel(CALLRES,"Дозвонились","cres")}</label></div>
+   <div class="r2"><label>Минут<input id="cmin" inputmode="numeric"></label><label>Новый статус${sel(STATUS,cur().status,"cst")}</label></div>
+   <label>Что обсудили<textarea id="cnote" rows="2"></textarea></label><button class="btn p" id="logGo">Записать звонок</button>`;
+  else if(k==="msg")box.innerHTML=`<div class="r2"><label>Канал${sel(CHANNEL,"WhatsApp","mch")}</label><label>Кто написал<select id="mdir"><option value="out">Мы клиенту</option><option value="in">Клиент нам</option></select></label></div>
+   <label>Текст сообщения<textarea id="mtext" rows="3"></textarea></label><button class="btn p" id="logGo">Записать сообщение</button>`;
+  else box.innerHTML=`<label>Заметка<textarea id="mtext" rows="3"></textarea></label><button class="btn p" id="logGo">Добавить заметку</button>`;
+  $("#logGo").onclick=()=>addLog(k);
+}
+async function addLog(k){
+  const l=cur(),ts=Date.now();
+  if(k==="call"){
+    const rec={id:uid(),leadId:l.id,ts,dir:$("#cdir").value,result:$("#cres").value,mins:$("#cmin").value.trim(),note:$("#cnote").value.trim(),manager:me()};
+    await store.set("calls",rec);
+    const st=$("#cst").value;let patch={};
+    if(st!==l.status)patch.status=st;
+    else if(rec.result==="Недозвон"&&l.status==="new")patch.status="nocontact";
+    else if(rec.result==="Дозвонились"&&["new","nocontact"].includes(l.status))patch.status="contacted";
+    if(Object.keys(patch).length)await store.set("leads",Object.assign({},l,patch,{updated:ts}));
+    toast("Звонок записан");setTimeout(()=>drawerRender(true),50);
+  }else{
+    const text=$("#mtext").value.trim();if(!text)return toast("Введите текст");
+    await store.set("messages",{id:uid(),leadId:l.id,ts,channel:k==="note"?"Заметка":$("#mch").value,dir:k==="note"?"out":$("#mdir").value,text,manager:me()});
+    if(k==="msg"&&l.status==="new")await store.set("leads",Object.assign({},l,{status:"talking",updated:ts}));
+    toast(k==="note"?"Заметка добавлена":"Сообщение записано");setTimeout(()=>drawerRender(true),50);
+  }
+}
+async function saveLead(){
+  const l=cur(),g=id=>$("#"+id).value.trim();
+  const o=Object.assign({},l,{fio:g("fio"),phone:g("phone"),region:$("#region").value,sphere:$("#sphere").value,product:g("product"),pack:$("#pack").value,lang:$("#lang").value,question:g("question"),status:$("#status").value,manager:g("manager"),amount:g("amount").replace(/\s/g,""),source:$("#source").value,next:$("#next").value,nextNote:g("nextNote"),updated:Date.now()});
+  if(!o.fio)return toast("Укажите ФИО");
+  if(!o.phone)return toast("Укажите телефон");
+  if(S.draft&&S.leads.some(x=>digits(x.phone)===digits(o.phone))&&!confirm_("Лид с таким телефоном уже есть. Создать ещё один?"))return;
+  await store.set("leads",o);
+  if(S.draft){S.draft=null;S.open=o.id}
+  toast("Сохранено");drawerRender();
+}
+let askedDup=false;
+function confirm_(m){if(askedDup){askedDup=false;return true}askedDup=true;toast(m+" Нажмите «Создать лид» ещё раз.");return false}
+
+/* ---------- импорт и выгрузка ---------- */
+function parseCsv(t){
+  t=t.replace(/^﻿/,"");
+  const first=t.split(/\r?\n/)[0]||"";const sep=[";","\t",","].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+  const rows=[];let r=[],c="",q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch==='"')q=true;else if(ch===sep){r.push(c);c=""}
+    else if(ch==="\n"){r.push(c.replace(/\r$/,""));rows.push(r);r=[];c=""}else c+=ch}
+  if(c.length||r.length){r.push(c.replace(/\r$/,""));rows.push(r)}
+  return rows.filter(x=>x.some(v=>v.trim()));
+}
+const MAP=[["fio",/фио|имя|фамилия|name/i],["phone",/тел|whats|phone|номер/i],["region",/област|регион|region/i],["sphere",/сфер|направл|деятельн/i],["pack",/пакет|package/i],["lang",/язык|перевод|lang/i],["product",/продукт|product/i],["question",/вопрос|question/i],["created",/дата|время|date|timestamp/i]];
+function readFile(f){if(!f)return;const r=new FileReader();r.onload=()=>importText(String(r.result));r.readAsText(f,"utf-8")}
+async function importText(t){
+  const rows=parseCsv(t||"");if(rows.length<2)return toast("Нужны заголовок и хотя бы одна строка");
+  const head=rows[0],idx={};
+  MAP.forEach(([k,re])=>{const i=head.findIndex((h,j)=>re.test(h)&&!Object.values(idx).includes(j));if(i>=0)idx[k]=i});
+  if(idx.phone==null||idx.fio==null)return toast("Не найдены колонки ФИО и телефон");
+  const seen=new Set(S.leads.map(l=>digits(l.phone)));let add=0,skip=0;
+  for(const r of rows.slice(1)){
+    const ph=(r[idx.phone]||"").trim(),fio=(r[idx.fio]||"").trim();
+    if(!ph||!fio){skip++;continue}
+    if(seen.has(digits(ph))){skip++;continue}seen.add(digits(ph));
+    const l=blank();l.id=uid();l.fio=fio;l.phone=ph;l.source="Сайт (форма)";l.manager="";
+    ["region","sphere","lang","product","question"].forEach(k=>{if(idx[k]!=null)l[k]=(r[idx[k]]||"").trim()});
+    if(idx.pack!=null){const p=(r[idx.pack]||"").trim();const m=PACK.find(x=>p.toLowerCase().includes(x[0].toLowerCase()));if(m)l.pack=m[0]}
+    if(idx.created!=null){const d=new Date((r[idx.created]||"").trim());if(!isNaN(d))l.created=d.getTime()}
+    await store.set("leads",l);add++;
+  }
+  toast(`Импортировано: ${add}, пропущено: ${skip}`);
+}
+const q2=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+async function exportCsv(kind){
+  let head,rows;
+  if(kind==="leads"){head=["Дата","ФИО","Телефон","Регион","Направление","Описание продукта","Пакет","Язык перевода","Вопрос","Статус","Менеджер","Сумма","Источник","Следующий шаг","Что сделать"];
+    rows=S.leads.map(l=>[fmtD(l.created),l.fio,l.phone,l.region,l.sphere,l.product,l.pack,l.lang,l.question,SN[l.status],l.manager,l.amount||PRICE[l.pack]||"",l.source,l.next,l.nextNote])}
+  else if(kind==="calls"){head=["Дата","ФИО","Телефон","Направление","Результат","Минут","Заметка","Менеджер"];
+    rows=S.calls.map(c=>{const l=byId(c.leadId)||{};return[fmtDT(c.ts),l.fio,l.phone,c.dir==="in"?"Входящий":"Исходящий",c.result,c.mins,c.note,c.manager]})}
+  else{head=["Дата","ФИО","Телефон","Канал","Кто","Текст","Менеджер"];
+    rows=S.msgs.map(m=>{const l=byId(m.leadId)||{};return[fmtDT(m.ts),l.fio,l.phone,m.channel,m.dir==="in"?"Клиент":"Мы",m.text,m.manager]})}
+  const csv="﻿"+[head,...rows].map(r=>r.map(q2).join(";")).join("\r\n");
+  try{const dl=typeof claude!=="undefined"?await claude.use("downloads"):null;
+    if(dl){await dl.save({filename:`agroforum-${kind}-${today()}.csv`,data:csv});return toast("Файл сохранён")}}catch(e){}
+  try{await navigator.clipboard.writeText(csv);toast("Скачивание недоступно. Таблица скопирована, вставьте в Google Таблицы")}catch(e){toast("Не удалось скачать или скопировать")}
+}
+async function copyReport(){
+  const L=S.leads,paid=L.filter(l=>["paid","confirmed"].includes(l.status));
+  const t=`Агрофорум 2026. Сводка на ${fmtD(Date.now())}\nЛидов: ${L.length}\nОплатили: ${paid.length} из ${SEATS} мест\nВыручка: ${money(paid.reduce((s,l)=>s+(Number(l.amount)||PRICE[l.pack]||0),0))}\nЗвонков: ${S.calls.length}, сообщений: ${S.msgs.length}\n`+STATUS.map(([k,n])=>`${n}: ${L.filter(l=>l.status===k).length}`).join("\n");
+  try{await navigator.clipboard.writeText(t);toast("Сводка скопирована")}catch(e){toast("Не удалось скопировать")}
+}
+async function delDemo(){
+  const ids=S.leads.filter(l=>l.demo).map(l=>l.id);if(!ids.length)return toast("Демо-лидов нет");
+  await Promise.all([...S.calls.filter(c=>ids.includes(c.leadId)).map(c=>store.del("calls",c.id)),...S.msgs.filter(m=>ids.includes(m.leadId)).map(m=>store.del("messages",m.id)),...ids.map(id=>store.del("leads",id))]);
+  toast("Демо удалено");
+}
+boot();
+</script>
+</body>
+</html>
