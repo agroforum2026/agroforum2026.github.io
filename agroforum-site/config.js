@@ -1,7 +1,7 @@
 // Fill these in before launch. Empty values are safe: the form still works and falls back to WhatsApp.
 window.CFG = {
   // Google Apps Script web app URL that appends a row to Google Sheets (POST, JSON body)
-  SHEET_URL: "",
+ https://script.google.com/macros/s/AKfycbxh7JRw3gl9IMfSFOssaOZzRiCeKHKliwMcpMZJZENQi_r-jXo9TwjmVstYq-vr9D2s/exec: "",
   // WhatsApp number in international format, digits only (it appears only inside the link)
   WA: "77471673817",
   // Kaspi payment links or QR pages, one per package
